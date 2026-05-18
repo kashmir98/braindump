@@ -1,0 +1,942 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="BrainDump">
+<meta name="theme-color" content="#1a1a2e">
+<link rel="manifest" href="manifest.json">
+<link rel="apple-touch-icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 192 192'><rect width='192' height='192' rx='40' fill='%231a1a2e'/><circle cx='96' cy='88' r='40' fill='%236c63ff'/><polygon points='88,68 104,88 92,88 108,116 96,100 104,100' fill='%23ffd93d'/></svg>">
+<link rel="icon" type="image/svg+xml" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'><rect width='32' height='32' rx='6' fill='%231a1a2e'/><circle cx='16' cy='14' r='7' fill='%236c63ff'/><polygon points='14,9 18,14 16,14 19,21 17,17 18,17' fill='%23ffd93d'/></svg>">
+<title>BrainDump - ADHD Calendar</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/react/18.2.0/umd/react.production.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/react-dom/18.2.0/umd/react-dom.production.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/babel-standalone/7.23.9/babel.min.js"></script>
+<style>
+  :root {
+    --bg-dark: #0f0f1a;
+    --bg-card: #1a1a2e;
+    --bg-card-hover: #222240;
+    --accent: #6c63ff;
+    --accent-glow: rgba(108,99,255,0.3);
+    --accent2: #ff6b9d;
+    --accent3: #00d2ff;
+    --accent4: #ffd93d;
+    --text: #e8e8f0;
+    --text-dim: #8888aa;
+    --text-bright: #ffffff;
+    --success: #4ade80;
+    --danger: #ef4444;
+    --border: #2a2a45;
+    --radius: 16px;
+    --radius-sm: 10px;
+  }
+
+  * { margin:0; padding:0; box-sizing:border-box; -webkit-tap-highlight-color:transparent; }
+
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Display', 'Segoe UI', sans-serif;
+    background: var(--bg-dark);
+    color: var(--text);
+    min-height: 100dvh;
+    overflow-x: hidden;
+    -webkit-font-smoothing: antialiased;
+  }
+
+  #root { min-height: 100dvh; display: flex; flex-direction: column; }
+
+  @keyframes pulse-glow {
+    0%, 100% { box-shadow: 0 0 20px var(--accent-glow), 0 0 60px rgba(108,99,255,0.1); }
+    50% { box-shadow: 0 0 40px var(--accent-glow), 0 0 80px rgba(108,99,255,0.2); }
+  }
+  @keyframes mic-pulse {
+    0%, 100% { transform: scale(1); }
+    50% { transform: scale(1.15); }
+  }
+  @keyframes slide-up {
+    from { transform: translateY(30px); opacity: 0; }
+    to { transform: translateY(0); opacity: 1; }
+  }
+  @keyframes fade-in { from { opacity: 0; } to { opacity: 1; } }
+  @keyframes recording-wave {
+    0%, 100% { height: 8px; }
+    50% { height: 24px; }
+  }
+
+  .slide-up { animation: slide-up 0.4s cubic-bezier(0.16, 1, 0.3, 1) forwards; }
+  .fade-in { animation: fade-in 0.3s ease forwards; }
+  ::-webkit-scrollbar { width: 4px; }
+  ::-webkit-scrollbar-track { background: transparent; }
+  ::-webkit-scrollbar-thumb { background: var(--border); border-radius: 4px; }
+
+  .topbar {
+    display: flex; align-items: center; justify-content: space-between;
+    padding: 16px 20px 8px;
+    position: sticky; top: 0; z-index: 50;
+    background: linear-gradient(to bottom, var(--bg-dark) 60%, transparent);
+  }
+  .topbar h1 {
+    font-size: 22px; font-weight: 800;
+    background: linear-gradient(135deg, var(--accent), var(--accent2));
+    -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+  }
+  .topbar-btn {
+    width: 40px; height: 40px; border-radius: 12px;
+    background: var(--bg-card); border: 1px solid var(--border);
+    color: var(--text); display: flex; align-items: center; justify-content: center;
+    font-size: 18px; cursor: pointer; transition: all 0.2s;
+  }
+  .topbar-btn:active { transform: scale(0.92); }
+  .main-content { flex: 1; padding: 0 16px 100px; overflow-y: auto; }
+  .dump-zone {
+    background: linear-gradient(145deg, var(--bg-card), #16162b);
+    border: 1px solid var(--border); border-radius: var(--radius);
+    padding: 20px; margin-bottom: 16px;
+  }
+  .dump-label {
+    font-size: 13px; font-weight: 600; color: var(--text-dim);
+    text-transform: uppercase; letter-spacing: 1px; margin-bottom: 12px;
+  }
+  .dump-textarea {
+    width: 100%; min-height: 80px; max-height: 200px;
+    background: rgba(255,255,255,0.04); border: 1px solid var(--border);
+    border-radius: var(--radius-sm); padding: 14px 16px;
+    color: var(--text); font-size: 16px; font-family: inherit;
+    resize: vertical; outline: none; transition: border-color 0.2s; line-height: 1.5;
+  }
+  .dump-textarea::placeholder { color: var(--text-dim); }
+  .dump-textarea:focus { border-color: var(--accent); }
+  .dump-actions { display: flex; gap: 10px; margin-top: 14px; flex-wrap: wrap; }
+  .mic-btn {
+    width: 56px; height: 56px; border-radius: 50%;
+    background: linear-gradient(135deg, var(--accent), #8b5cf6);
+    border: none; color: white; font-size: 24px;
+    cursor: pointer; display: flex; align-items: center; justify-content: center;
+    transition: all 0.2s; flex-shrink: 0; position: relative;
+  }
+  .mic-btn:active { transform: scale(0.9); }
+  .mic-btn.recording {
+    background: linear-gradient(135deg, var(--danger), #dc2626);
+    animation: mic-pulse 1s ease-in-out infinite;
+  }
+  .mic-btn.recording::after {
+    content: ''; position: absolute; inset: -6px;
+    border-radius: 50%; border: 2px solid var(--danger);
+    animation: mic-pulse 1s ease-in-out infinite; opacity: 0.5;
+  }
+  .parse-btn {
+    flex: 1; height: 56px; border-radius: 28px;
+    background: linear-gradient(135deg, var(--accent), #8b5cf6);
+    border: none; color: white; font-size: 16px; font-weight: 700;
+    cursor: pointer; transition: all 0.2s;
+    display: flex; align-items: center; justify-content: center; gap: 8px;
+  }
+  .parse-btn:active { transform: scale(0.97); }
+  .parse-btn:disabled { opacity: 0.4; cursor: default; }
+  .wave-container { display: flex; align-items: center; justify-content: center; gap: 3px; height: 30px; margin-top: 10px; }
+  .wave-bar { width: 4px; border-radius: 4px; background: var(--accent); animation: recording-wave 0.8s ease-in-out infinite; }
+  .quick-templates { display: flex; gap: 8px; overflow-x: auto; padding: 4px 0 8px; scrollbar-width: none; margin-bottom: 8px; }
+  .quick-templates::-webkit-scrollbar { display: none; }
+  .template-chip {
+    flex-shrink: 0; padding: 8px 16px; border-radius: 20px;
+    background: var(--bg-card); border: 1px solid var(--border);
+    color: var(--text); font-size: 14px; cursor: pointer;
+    transition: all 0.2s; white-space: nowrap; display: flex; align-items: center; gap: 6px;
+  }
+  .template-chip:active { transform: scale(0.95); background: var(--bg-card-hover); }
+
+  .parsed-preview {
+    background: var(--bg-card); border: 2px solid var(--accent);
+    border-radius: var(--radius); padding: 16px; margin: 12px 0;
+    animation: slide-up 0.3s ease;
+  }
+  .parsed-preview h3 { font-size: 16px; color: var(--accent); margin-bottom: 8px; }
+  .parsed-field { display: flex; align-items: center; gap: 8px; padding: 6px 0; font-size: 14px; color: var(--text); }
+  .parsed-field .icon { width: 20px; text-align: center; }
+  .parsed-field input {
+    background: rgba(255,255,255,0.06); border: 1px solid var(--border);
+    border-radius: 8px; padding: 8px 12px; color: var(--text);
+    font-size: 14px; font-family: inherit; outline: none; flex: 1;
+  }
+  .parsed-field input:focus { border-color: var(--accent); }
+  .parsed-actions { display: flex; gap: 8px; margin-top: 14px; }
+  .btn-confirm {
+    flex: 1; padding: 12px; border-radius: 12px;
+    background: var(--success); border: none;
+    color: #000; font-weight: 700; font-size: 15px; cursor: pointer; transition: all 0.2s;
+  }
+  .btn-confirm:active { transform: scale(0.97); }
+  .btn-cancel {
+    padding: 12px 20px; border-radius: 12px;
+    background: var(--bg-card-hover); border: 1px solid var(--border);
+    color: var(--text-dim); font-weight: 600; font-size: 15px; cursor: pointer; transition: all 0.2s;
+  }
+  .section-header { display: flex; align-items: center; justify-content: space-between; padding: 16px 0 10px; }
+  .section-header h2 { font-size: 18px; font-weight: 700; color: var(--text-bright); }
+  .section-header .count { background: var(--accent); color: white; font-size: 12px; font-weight: 700; padding: 2px 10px; border-radius: 10px; }
+  .event-card {
+    background: var(--bg-card); border: 1px solid var(--border);
+    border-radius: var(--radius); padding: 16px; margin-bottom: 10px;
+    transition: all 0.2s; position: relative; overflow: hidden; animation: slide-up 0.3s ease;
+  }
+  .event-card::before { content: ''; position: absolute; left: 0; top: 0; bottom: 0; width: 4px; }
+  .event-card.cat-work::before { background: var(--accent); }
+  .event-card.cat-health::before { background: var(--success); }
+  .event-card.cat-social::before { background: var(--accent2); }
+  .event-card.cat-errand::before { background: var(--accent4); }
+  .event-card.cat-default::before { background: var(--accent3); }
+  .event-card:active { transform: scale(0.985); }
+  .event-top { display: flex; align-items: flex-start; justify-content: space-between; }
+  .event-title { font-size: 16px; font-weight: 700; color: var(--text-bright); }
+  .event-time { font-size: 13px; color: var(--accent); font-weight: 600; background: rgba(108,99,255,0.12); padding: 3px 10px; border-radius: 8px; white-space: nowrap; margin-left: 8px; flex-shrink: 0; }
+  .event-detail { font-size: 13px; color: var(--text-dim); margin-top: 4px; }
+  .event-actions-row { display: flex; gap: 8px; margin-top: 10px; }
+  .event-action-btn {
+    padding: 6px 14px; border-radius: 8px;
+    background: rgba(255,255,255,0.05); border: 1px solid var(--border);
+    color: var(--text-dim); font-size: 12px; font-weight: 600;
+    cursor: pointer; transition: all 0.2s; display: flex; align-items: center; gap: 4px;
+  }
+  .event-action-btn:active { transform: scale(0.94); }
+  .event-action-btn.export { color: var(--accent); border-color: var(--accent); }
+  .event-action-btn.delete { color: var(--danger); border-color: var(--danger); }
+  .event-action-btn.done { color: var(--success); border-color: var(--success); }
+
+  .today-hero {
+    background: linear-gradient(145deg, #1e1e3a, var(--bg-card));
+    border: 1px solid var(--border); border-radius: var(--radius);
+    padding: 20px; margin-bottom: 16px; text-align: center;
+  }
+  .today-date { font-size: 14px; color: var(--text-dim); font-weight: 500; }
+  .today-count {
+    font-size: 48px; font-weight: 900; margin: 4px 0;
+    background: linear-gradient(135deg, var(--accent), var(--accent2));
+    -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+  }
+  .today-subtitle { font-size: 14px; color: var(--text-dim); }
+  .next-up {
+    background: linear-gradient(135deg, rgba(108,99,255,0.15), rgba(255,107,157,0.1));
+    border: 1px solid var(--accent); border-radius: var(--radius);
+    padding: 16px; margin-bottom: 16px; animation: pulse-glow 3s ease-in-out infinite;
+  }
+  .next-up-label { font-size: 12px; color: var(--accent); font-weight: 700; text-transform: uppercase; letter-spacing: 1px; }
+  .next-up-title { font-size: 20px; font-weight: 800; color: var(--text-bright); margin: 4px 0; }
+  .next-up-time { font-size: 14px; color: var(--accent2); font-weight: 600; }
+  .empty-state { text-align: center; padding: 40px 20px; color: var(--text-dim); }
+  .empty-state .emoji { font-size: 48px; margin-bottom: 12px; }
+  .empty-state p { font-size: 15px; line-height: 1.6; }
+  .bottom-nav {
+    position: fixed; bottom: 0; left: 0; right: 0;
+    background: rgba(15,15,26,0.95); backdrop-filter: blur(20px);
+    border-top: 1px solid var(--border);
+    display: flex; justify-content: space-around; align-items: center;
+    padding: 8px 0 max(8px, env(safe-area-inset-bottom)); z-index: 100;
+  }
+  .nav-item {
+    display: flex; flex-direction: column; align-items: center;
+    padding: 6px 16px; border-radius: 12px; cursor: pointer;
+    transition: all 0.2s; background: none; border: none;
+    color: var(--text-dim); font-size: 11px; font-weight: 600; gap: 2px;
+  }
+  .nav-item .nav-icon { font-size: 22px; }
+  .nav-item.active { color: var(--accent); }
+  .nav-item:active { transform: scale(0.9); }
+  .setting-group {
+    background: var(--bg-card); border: 1px solid var(--border);
+    border-radius: var(--radius); margin-bottom: 12px; overflow: hidden;
+  }
+  .setting-group-title { padding: 14px 16px 8px; font-size: 12px; font-weight: 700; color: var(--text-dim); text-transform: uppercase; letter-spacing: 1px; }
+  .setting-row {
+    display: flex; align-items: center; justify-content: space-between;
+    padding: 14px 16px; border-top: 1px solid rgba(255,255,255,0.04);
+  }
+  .setting-row:first-child { border-top: none; }
+  .setting-label { font-size: 15px; color: var(--text); }
+  .setting-desc { font-size: 12px; color: var(--text-dim); margin-top: 2px; }
+  .toggle {
+    width: 50px; height: 28px; border-radius: 14px;
+    background: var(--border); border: none; cursor: pointer;
+    position: relative; transition: background 0.3s; flex-shrink: 0;
+  }
+  .toggle::after {
+    content: ''; position: absolute; width: 22px; height: 22px;
+    border-radius: 50%; background: white; top: 3px; left: 3px; transition: transform 0.3s;
+  }
+  .toggle.on { background: var(--accent); }
+  .toggle.on::after { transform: translateX(22px); }
+  .setting-select {
+    background: var(--bg-card-hover); border: 1px solid var(--border);
+    border-radius: 8px; padding: 6px 12px; color: var(--text); font-size: 14px; outline: none; cursor: pointer;
+  }
+  .toast {
+    position: fixed; top: 60px; left: 50%; transform: translateX(-50%);
+    background: var(--bg-card); border: 1px solid var(--success);
+    color: var(--success); padding: 12px 24px; border-radius: 12px;
+    font-weight: 600; font-size: 14px; z-index: 200;
+    animation: slide-up 0.3s ease; display: flex; align-items: center; gap: 8px;
+    box-shadow: 0 10px 40px rgba(0,0,0,0.4);
+  }
+
+  .cal-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 12px; }
+  .cal-header h2 { font-size: 20px; font-weight: 800; }
+  .cal-nav { display: flex; gap: 8px; }
+  .cal-nav button {
+    width: 36px; height: 36px; border-radius: 10px;
+    background: var(--bg-card); border: 1px solid var(--border);
+    color: var(--text); font-size: 16px; cursor: pointer;
+    display: flex; align-items: center; justify-content: center;
+  }
+  .cal-grid { display: grid; grid-template-columns: repeat(7, 1fr); gap: 4px; margin-bottom: 16px; }
+  .cal-day-label { text-align: center; font-size: 11px; font-weight: 700; color: var(--text-dim); padding: 8px 0; }
+  .cal-day {
+    aspect-ratio: 1; display: flex; flex-direction: column;
+    align-items: center; justify-content: center;
+    border-radius: 10px; cursor: pointer; font-size: 14px;
+    font-weight: 600; color: var(--text-dim); transition: all 0.2s; position: relative;
+  }
+  .cal-day:active { transform: scale(0.9); }
+  .cal-day.today { background: var(--accent); color: white; }
+  .cal-day.has-events::after {
+    content: ''; position: absolute; bottom: 4px;
+    width: 5px; height: 5px; border-radius: 50%; background: var(--accent2);
+  }
+  .cal-day.today.has-events::after { background: white; }
+  .cal-day.selected { border: 2px solid var(--accent); }
+  .cal-day.other-month { opacity: 0.3; }
+  .multi-parse { margin: 12px 0; }
+  .multi-parse-item {
+    background: var(--bg-card); border: 1px solid var(--border);
+    border-radius: var(--radius-sm); padding: 12px; margin-bottom: 8px;
+    display: flex; align-items: center; gap: 10px;
+  }
+  .multi-check {
+    width: 24px; height: 24px; border-radius: 6px;
+    background: var(--accent); border: none; color: white;
+    font-size: 14px; cursor: pointer; flex-shrink: 0;
+    display: flex; align-items: center; justify-content: center;
+  }
+  .multi-check.unchecked { background: var(--bg-card-hover); border: 1px solid var(--border); }
+  .multi-info { flex: 1; }
+  .multi-info .name { font-weight: 700; font-size: 14px; color: var(--text-bright); }
+  .multi-info .when { font-size: 12px; color: var(--accent); margin-top: 2px; }
+  .notif-banner {
+    background: linear-gradient(135deg, rgba(108,99,255,0.2), rgba(255,107,157,0.15));
+    border: 1px solid var(--accent); border-radius: var(--radius); padding: 16px; margin-bottom: 16px; text-align: center;
+  }
+  .notif-banner p { font-size: 14px; color: var(--text); margin-bottom: 10px; line-height: 1.5; }
+  .notif-banner button {
+    padding: 10px 24px; border-radius: 12px;
+    background: var(--accent); border: none; color: white; font-weight: 700; font-size: 14px; cursor: pointer;
+  }
+  .export-all-btn {
+    width: 100%; padding: 14px; border-radius: 12px;
+    background: linear-gradient(135deg, var(--accent), #8b5cf6);
+    border: none; color: white; font-size: 15px; font-weight: 700;
+    cursor: pointer; margin-top: 8px; transition: all 0.2s;
+    display: flex; align-items: center; justify-content: center; gap: 8px;
+  }
+  .export-all-btn:active { transform: scale(0.97); }
+</style>
+</head>
+<body>
+<div id="root"></div>
+<script type="text/babel">
+const { useState, useEffect, useRef, useCallback } = React;
+
+const DateParser = {
+  parse(text, baseDate = new Date()) {
+    const events = [];
+    const lines = text.split(/[\n;]/).map(l => l.trim()).filter(Boolean);
+    for (const line of lines) {
+      const parsed = this.parseSingle(line, baseDate);
+      if (parsed) events.push(parsed);
+    }
+    return events.length > 0 ? events : [this.parseSingle(text, baseDate)].filter(Boolean);
+  },
+
+  parseSingle(text, base) {
+    if (!text || text.length < 3) return null;
+    const now = new Date(base);
+    let date = new Date(now);
+    let hour = null, minute = 0, duration = 60;
+    let foundDate = false, foundTime = false;
+    const lower = text.toLowerCase();
+
+    const timeMatch = lower.match(/(\d{1,2})\s*:\s*(\d{2})\s*(am|pm)?/i) ||
+                      lower.match(/(\d{1,2})\s*(am|pm)/i);
+    if (timeMatch) {
+      hour = parseInt(timeMatch[1]);
+      minute = timeMatch[2] && timeMatch[2].length === 2 && !isNaN(parseInt(timeMatch[2])) ? parseInt(timeMatch[2]) : 0;
+      const ampm = timeMatch[3] || timeMatch[2];
+      if (typeof ampm === 'string' && (ampm.toLowerCase() === 'pm' || ampm.toLowerCase() === 'am')) {
+        if (ampm.toLowerCase() === 'pm' && hour < 12) hour += 12;
+        if (ampm.toLowerCase() === 'am' && hour === 12) hour = 0;
+      }
+      foundTime = true;
+    }
+
+    if (/\bnoon\b/.test(lower)) { hour = 12; minute = 0; foundTime = true; }
+    if (/\bmidnight\b/.test(lower)) { hour = 0; minute = 0; foundTime = true; }
+    if (/\bmorning\b/.test(lower) && !foundTime) { hour = 9; minute = 0; foundTime = true; }
+    if (/\bafternoon\b/.test(lower) && !foundTime) { hour = 14; minute = 0; foundTime = true; }
+    if (/\bevening\b/.test(lower) && !foundTime) { hour = 18; minute = 0; foundTime = true; }
+    if (/\bnight\b/.test(lower) && !foundTime) { hour = 20; minute = 0; foundTime = true; }
+
+    if (/\btoday\b/.test(lower)) { foundDate = true; }
+    if (/\btonight\b/.test(lower)) { foundDate = true; if (!foundTime) { hour = 20; minute = 0; foundTime = true; } }
+    if (/\btomorrow\b/.test(lower)) { date.setDate(date.getDate() + 1); foundDate = true; }
+    if (/\bday after tomorrow\b/.test(lower)) { date.setDate(date.getDate() + 2); foundDate = true; }
+
+    const inMatch = lower.match(/in\s+(\d+)\s*(hour|hr|minute|min)s?/);
+    if (inMatch) {
+      const val = parseInt(inMatch[1]);
+      if (/hour|hr/.test(inMatch[2])) { date = new Date(now.getTime() + val * 60 * 60 * 1000); }
+      else { date = new Date(now.getTime() + val * 60 * 1000); }
+      hour = date.getHours(); minute = date.getMinutes();
+      foundDate = true; foundTime = true;
+    }
+
+    const days = ['sunday','monday','tuesday','wednesday','thursday','friday','saturday'];
+    const dayMatch = lower.match(/\b(next\s+)?(sunday|monday|tuesday|wednesday|thursday|friday|saturday)\b/);
+    if (dayMatch) {
+      const targetDay = days.indexOf(dayMatch[2]);
+      const currentDay = now.getDay();
+      let daysUntil = (targetDay - currentDay + 7) % 7;
+      if (daysUntil === 0 && !dayMatch[1]) daysUntil = 0;
+      if (dayMatch[1]) daysUntil += 7;
+      if (daysUntil === 0 && now.getHours() > 18) daysUntil = 7;
+      date.setDate(now.getDate() + daysUntil);
+      foundDate = true;
+    }
+
+    const months = ['january','february','march','april','may','june','july','august','september','october','november','december'];
+    const monthMatch = lower.match(/\b(january|february|march|april|may|june|july|august|september|october|november|december)\s+(\d{1,2})(st|nd|rd|th)?\b/);
+    if (monthMatch) {
+      const m = months.indexOf(monthMatch[1]);
+      const d = parseInt(monthMatch[2]);
+      date.setMonth(m, d);
+      if (date < now) date.setFullYear(date.getFullYear() + 1);
+      foundDate = true;
+    }
+
+    const numDateMatch = lower.match(/\b(\d{1,2})[\/\-](\d{1,2})(?:[\/\-](\d{2,4}))?\b/);
+    if (numDateMatch && !foundDate) {
+      const m = parseInt(numDateMatch[1]) - 1;
+      const d = parseInt(numDateMatch[2]);
+      let y = numDateMatch[3] ? parseInt(numDateMatch[3]) : now.getFullYear();
+      if (y < 100) y += 2000;
+      date = new Date(y, m, d);
+      if (date < now && !numDateMatch[3]) date.setFullYear(date.getFullYear() + 1);
+      foundDate = true;
+    }
+
+    const durMatch = lower.match(/(?:for\s+)?(\d+\.?\d*)\s*(hour|hr|minute|min)s?/);
+    if (durMatch && !inMatch) {
+      const val = parseFloat(durMatch[1]);
+      if (/hour|hr/.test(durMatch[2])) duration = val * 60;
+      else duration = val;
+    }
+
+    if (!foundTime) { hour = 9; minute = 0; }
+    date.setHours(hour, minute, 0, 0);
+
+    let title = text
+      .replace(/\b(today|tonight|tomorrow|day after tomorrow)\b/gi, '')
+      .replace(/\b(next\s+)?(sunday|monday|tuesday|wednesday|thursday|friday|saturday)\b/gi, '')
+      .replace(/\b(january|february|march|april|may|june|july|august|september|october|november|december)\s+\d{1,2}(st|nd|rd|th)?\b/gi, '')
+      .replace(/\d{1,2}[\/\-]\d{1,2}([\/\-]\d{2,4})?/g, '')
+      .replace(/\d{1,2}\s*:\s*\d{2}\s*(am|pm)?/gi, '')
+      .replace(/\d{1,2}\s*(am|pm)/gi, '')
+      .replace(/\b(at|on|in|for|from|to|the|this|next)\b/gi, '')
+      .replace(/\b(noon|midnight|morning|afternoon|evening|night)\b/gi, '')
+      .replace(/\b\d+\s*(hours?|hrs?|minutes?|mins?)\b/gi, '')
+      .replace(/\s+/g, ' ').trim();
+    if (!title) title = 'New Event';
+    title = title.charAt(0).toUpperCase() + title.slice(1);
+    const cat = this.guessCategory(lower);
+    return { id: Date.now() + Math.random(), title, date: date.toISOString(), duration, category: cat, reminders: [30, 10], done: false, createdAt: new Date().toISOString() };
+  },
+
+  guessCategory(text) {
+    if (/\b(meeting|call|standup|review|interview|presentation|work|office|report|deadline|project)\b/.test(text)) return 'work';
+    if (/\b(doctor|dentist|gym|workout|run|jog|yoga|meditat|health|therapy|appointment|checkup)\b/.test(text)) return 'health';
+    if (/\b(dinner|lunch|coffee|party|date|birthday|friend|hangout|drink|brunch|movie)\b/.test(text)) return 'social';
+    if (/\b(groceries|laundry|clean|pickup|dropoff|oil change|car|bank|post office|pharmacy|errand|shop)\b/.test(text)) return 'errand';
+    return 'default';
+  }
+};
+
+function generateICS(events) {
+  const pad = n => String(n).padStart(2, '0');
+  const toICSDate = d => {
+    const dt = new Date(d);
+    return `${dt.getFullYear()}${pad(dt.getMonth()+1)}${pad(dt.getDate())}T${pad(dt.getHours())}${pad(dt.getMinutes())}00`;
+  };
+  let ics = 'BEGIN:VCALENDAR\r\nVERSION:2.0\r\nPRODID:-//BrainDump//ADHD Calendar//EN\r\nCALSCALE:GREGORIAN\r\n';
+  for (const ev of events) {
+    const start = new Date(ev.date);
+    const end = new Date(start.getTime() + ev.duration * 60000);
+    ics += 'BEGIN:VEVENT\r\n';
+    ics += 'UID:' + ev.id + '@braindump\r\n';
+    ics += 'DTSTART:' + toICSDate(start) + '\r\n';
+    ics += 'DTEND:' + toICSDate(end) + '\r\n';
+    ics += 'SUMMARY:' + ev.title + '\r\n';
+    if (ev.reminders && ev.reminders.length) {
+      for (const r of ev.reminders) {
+        ics += 'BEGIN:VALARM\r\nTRIGGER:-PT' + r + 'M\r\nACTION:DISPLAY\r\nDESCRIPTION:' + ev.title + ' in ' + r + ' minutes\r\nEND:VALARM\r\n';
+      }
+    }
+    ics += 'END:VEVENT\r\n';
+  }
+  ics += 'END:VCALENDAR';
+  return ics;
+}
+
+function downloadICS(events, filename = 'braindump.ics') {
+  const ics = generateICS(Array.isArray(events) ? events : [events]);
+  const blob = new Blob([ics], { type: 'text/calendar;charset=utf-8' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url; a.download = filename;
+  document.body.appendChild(a); a.click();
+  document.body.removeChild(a);
+  URL.revokeObjectURL(url);
+}
+
+const NotifManager = {
+  permission: typeof Notification !== 'undefined' ? Notification.permission : 'denied',
+  timers: [],
+  async requestPermission() {
+    if (typeof Notification === 'undefined') return 'denied';
+    const perm = await Notification.requestPermission();
+    this.permission = perm;
+    return perm;
+  },
+  scheduleForEvent(event, settings) {
+    if (this.permission !== 'granted') return;
+    const eventTime = new Date(event.date).getTime();
+    const now = Date.now();
+    const reminders = settings.escalating ? [60, 30, 15, 10, 5, 2] : (event.reminders || [30, 10]);
+    for (const minBefore of reminders) {
+      const triggerAt = eventTime - minBefore * 60000;
+      if (triggerAt > now) {
+        const timer = setTimeout(() => {
+          new Notification((minBefore === 2 ? 'NOW! ' : '') + event.title, {
+            body: minBefore <= 2 ? 'Starting RIGHT NOW - go go go!' : 'Starting in ' + minBefore + ' minutes',
+            icon: 'icon.svg', tag: event.id + '-' + minBefore,
+            requireInteraction: minBefore <= 5, vibrate: minBefore <= 5 ? [200, 100, 200, 100, 200] : [200]
+          });
+        }, triggerAt - now);
+        this.timers.push(timer);
+      }
+    }
+    if (settings.prepTime > 0) {
+      const prepAt = eventTime - (settings.prepTime + 5) * 60000;
+      if (prepAt > now) {
+        const timer = setTimeout(() => {
+          new Notification('Prep time for ' + event.title, {
+            body: 'You need ' + settings.prepTime + ' min to get ready. Start now!',
+            icon: 'icon.svg', tag: event.id + '-prep', requireInteraction: true
+          });
+        }, prepAt - now);
+        this.timers.push(timer);
+      }
+    }
+  },
+  clearAll() { this.timers.forEach(t => clearTimeout(t)); this.timers = []; }
+};
+
+function loadEvents() { try { return JSON.parse(localStorage.getItem('bd_events') || '[]'); } catch { return []; } }
+function saveEvents(events) { localStorage.setItem('bd_events', JSON.stringify(events)); }
+function loadSettings() {
+  const defaults = { escalating: true, prepTime: 15, leaveReminder: true, darkMode: true, defaultDuration: 60, soundEnabled: true };
+  try { return { ...defaults, ...JSON.parse(localStorage.getItem('bd_settings') || '{}') }; } catch { return defaults; }
+}
+function saveSettings(s) { localStorage.setItem('bd_settings', JSON.stringify(s)); }
+
+function App() {
+  const [tab, setTab] = useState('dump');
+  const [events, setEvents] = useState(loadEvents);
+  const [settings, setSettings] = useState(loadSettings);
+  const [toast, setToast] = useState(null);
+
+  useEffect(() => { saveEvents(events); }, [events]);
+  useEffect(() => {
+    saveSettings(settings);
+    NotifManager.clearAll();
+    events.filter(e => !e.done).forEach(e => NotifManager.scheduleForEvent(e, settings));
+  }, [settings, events]);
+
+  const showToast = (msg) => { setToast(msg); setTimeout(() => setToast(null), 2500); };
+  const addEvent = (ev) => { setEvents(prev => [...prev, ev]); NotifManager.scheduleForEvent(ev, settings); showToast('Added: ' + ev.title); };
+  const addEvents = (evs) => { setEvents(prev => [...prev, ...evs]); evs.forEach(e => NotifManager.scheduleForEvent(e, settings)); showToast('Added ' + evs.length + ' events'); };
+  const deleteEvent = (id) => { setEvents(prev => prev.filter(e => e.id !== id)); };
+  const toggleDone = (id) => { setEvents(prev => prev.map(e => e.id === id ? { ...e, done: !e.done } : e)); };
+  const updateSettings = (key, val) => { setSettings(prev => ({ ...prev, [key]: val })); };
+
+  return (
+    <div style={{ display: 'flex', flexDirection: 'column', minHeight: '100dvh' }}>
+      <div className="topbar">
+        <h1>BrainDump</h1>
+        <button className="topbar-btn" onClick={() => setTab('settings')} title="Settings">
+          {tab === 'settings' ? '\u2715' : '\u2699'}
+        </button>
+      </div>
+      <div className="main-content">
+        {tab === 'dump' && <DumpView onAdd={addEvent} onAddMulti={addEvents} settings={settings} />}
+        {tab === 'today' && <TodayView events={events} onDelete={deleteEvent} onToggleDone={toggleDone} onExport={(ev) => { downloadICS(ev); showToast('Exported to Apple Calendar'); }} />}
+        {tab === 'calendar' && <CalendarView events={events} onDelete={deleteEvent} onToggleDone={toggleDone} onExport={(ev) => { downloadICS(ev); showToast('Exported to Apple Calendar'); }} onExportAll={() => { downloadICS(events); showToast('All events exported!'); }} />}
+        {tab === 'settings' && <SettingsView settings={settings} onUpdate={updateSettings} events={events} onExportAll={() => { downloadICS(events); showToast('All events exported!'); }} />}
+      </div>
+      {toast && <div className="toast">\u2713 {toast}</div>}
+      <nav className="bottom-nav">
+        <button className={'nav-item ' + (tab === 'dump' ? 'active' : '')} onClick={() => setTab('dump')}>
+          <span className="nav-icon">\ud83e\udde0</span>Dump
+        </button>
+        <button className={'nav-item ' + (tab === 'today' ? 'active' : '')} onClick={() => setTab('today')}>
+          <span className="nav-icon">\ud83c\udf1f</span>Today
+        </button>
+        <button className={'nav-item ' + (tab === 'calendar' ? 'active' : '')} onClick={() => setTab('calendar')}>
+          <span className="nav-icon">\ud83d\udcc5</span>Calendar
+        </button>
+        <button className={'nav-item ' + (tab === 'settings' ? 'active' : '')} onClick={() => setTab('settings')}>
+          <span className="nav-icon">\u2699\ufe0f</span>Settings
+        </button>
+      </nav>
+    </div>
+  );
+}
+
+function DumpView({ onAdd, onAddMulti, settings }) {
+  const [text, setText] = useState('');
+  const [recording, setRecording] = useState(false);
+  const [parsedEvents, setParsedEvents] = useState([]);
+  const [showParsed, setShowParsed] = useState(false);
+  const [notifBanner, setNotifBanner] = useState(typeof Notification !== 'undefined' && Notification.permission === 'default');
+  const recognitionRef = useRef(null);
+  const textareaRef = useRef(null);
+
+  const templates = [
+    { emoji: '\ud83d\udcbc', label: 'Meeting', text: 'Meeting tomorrow at ' },
+    { emoji: '\ud83c\udfcb', label: 'Gym', text: 'Gym today at ' },
+    { emoji: '\ud83d\uded2', label: 'Groceries', text: 'Groceries today evening' },
+    { emoji: '\ud83d\udcde', label: 'Call', text: 'Call with ' },
+    { emoji: '\ud83e\ude7a', label: 'Doctor', text: 'Doctor appointment ' },
+    { emoji: '\ud83c\udf7d', label: 'Dinner', text: 'Dinner ' },
+  ];
+
+  const startRecording = () => {
+    const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
+    if (!SR) { alert('Voice input is not supported in this browser. Try Safari on iPhone.'); return; }
+    const recognition = new SR();
+    recognition.continuous = true; recognition.interimResults = true; recognition.lang = 'en-US';
+    recognition.onresult = (event) => { let t = ''; for (let i = 0; i < event.results.length; i++) { t += event.results[i][0].transcript; } setText(t); };
+    recognition.onerror = () => setRecording(false);
+    recognition.onend = () => setRecording(false);
+    recognition.start(); recognitionRef.current = recognition; setRecording(true);
+  };
+  const stopRecording = () => { if (recognitionRef.current) { recognitionRef.current.stop(); recognitionRef.current = null; } setRecording(false); };
+  const handleParse = () => {
+    if (!text.trim()) return;
+    const parsed = DateParser.parse(text.trim());
+    if (parsed.length === 1) { setParsedEvents(parsed); setShowParsed(true); }
+    else if (parsed.length > 1) { setParsedEvents(parsed.map(e => ({ ...e, selected: true }))); setShowParsed(true); }
+  };
+  const handleConfirm = () => {
+    if (parsedEvents.length === 1) { onAdd(parsedEvents[0]); }
+    else { const selected = parsedEvents.filter(e => e.selected !== false); if (selected.length > 0) onAddMulti(selected); }
+    setText(''); setParsedEvents([]); setShowParsed(false);
+  };
+  const handleCancel = () => { setParsedEvents([]); setShowParsed(false); };
+  const updateParsedField = (idx, field, value) => { setParsedEvents(prev => prev.map((e, i) => i === idx ? { ...e, [field]: value } : e)); };
+  const toggleParsedSelect = (idx) => { setParsedEvents(prev => prev.map((e, i) => i === idx ? { ...e, selected: e.selected === false ? true : false } : e)); };
+  const requestNotifPerm = async () => { await NotifManager.requestPermission(); setNotifBanner(false); };
+  const formatParsedDate = (iso) => { const d = new Date(iso); return d.toLocaleString('en-US', { weekday: 'short', month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' }); };
+
+  return (
+    <div>
+      {notifBanner && (
+        <div className="notif-banner slide-up">
+          <p>Enable notifications to get ADHD-friendly reminders that actually get your attention.</p>
+          <button onClick={requestNotifPerm}>Enable Notifications</button>
+        </div>
+      )}
+      <div className="dump-zone slide-up">
+        <div className="dump-label">Brain dump zone</div>
+        <textarea ref={textareaRef} className="dump-textarea"
+          placeholder={"Speak, type, or paste anything...\n\nTry: 'Dentist Tuesday 3pm'\nOr paste a text message with plans"}
+          value={text} onChange={e => setText(e.target.value)}
+          onKeyDown={e => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); handleParse(); } }}
+        />
+        {recording && (
+          <div className="wave-container">
+            {[...Array(12)].map((_, i) => <div key={i} className="wave-bar" style={{ animationDelay: i * 0.1 + 's', height: (8 + Math.random() * 16) + 'px' }} />)}
+          </div>
+        )}
+        <div className="dump-actions">
+          <button className={'mic-btn ' + (recording ? 'recording' : '')} onClick={recording ? stopRecording : startRecording} title={recording ? 'Stop recording' : 'Start voice input'}>
+            {recording ? '\u23f9' : '\ud83c\udf99'}
+          </button>
+          <button className="parse-btn" onClick={handleParse} disabled={!text.trim()}>
+            \u2728 Turn into Event
+          </button>
+        </div>
+      </div>
+      <div className="quick-templates">
+        {templates.map((t, i) => (
+          <button key={i} className="template-chip" onClick={() => { setText(t.text); textareaRef.current?.focus(); }}>
+            {t.emoji} {t.label}
+          </button>
+        ))}
+      </div>
+      {showParsed && parsedEvents.length === 1 && (
+        <div className="parsed-preview">
+          <h3>\u2728 Parsed Event</h3>
+          <div className="parsed-field"><span className="icon">\ud83d\udccc</span>
+            <input value={parsedEvents[0].title} onChange={e => updateParsedField(0, 'title', e.target.value)} placeholder="Event title" />
+          </div>
+          <div className="parsed-field"><span className="icon">\ud83d\udcc5</span>
+            <input type="datetime-local" value={new Date(parsedEvents[0].date).toISOString().slice(0, 16)} onChange={e => updateParsedField(0, 'date', new Date(e.target.value).toISOString())} />
+          </div>
+          <div className="parsed-field"><span className="icon">\u23f1</span>
+            <input type="number" value={parsedEvents[0].duration} onChange={e => updateParsedField(0, 'duration', parseInt(e.target.value) || 30)} style={{ width: 80 }} />
+            <span style={{ color: 'var(--text-dim)', fontSize: 13 }}>min</span>
+          </div>
+          <div className="parsed-actions">
+            <button className="btn-confirm" onClick={handleConfirm}>\u2713 Add Event</button>
+            <button className="btn-cancel" onClick={handleCancel}>Cancel</button>
+          </div>
+        </div>
+      )}
+      {showParsed && parsedEvents.length > 1 && (
+        <div className="parsed-preview">
+          <h3>\u2728 Found {parsedEvents.length} events</h3>
+          <div className="multi-parse">
+            {parsedEvents.map((ev, i) => (
+              <div key={i} className="multi-parse-item">
+                <button className={'multi-check ' + (ev.selected === false ? 'unchecked' : '')} onClick={() => toggleParsedSelect(i)}>
+                  {ev.selected !== false ? '\u2713' : ''}
+                </button>
+                <div className="multi-info">
+                  <div className="name">{ev.title}</div>
+                  <div className="when">{formatParsedDate(ev.date)}</div>
+                </div>
+              </div>
+            ))}
+          </div>
+          <div className="parsed-actions">
+            <button className="btn-confirm" onClick={handleConfirm}>\u2713 Add Selected</button>
+            <button className="btn-cancel" onClick={handleCancel}>Cancel</button>
+          </div>
+        </div>
+      )}
+      <div style={{ padding: '12px 4px', marginTop: 8 }}>
+        <div className="dump-label" style={{ marginBottom: 10 }}>Tips for lazy planning</div>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+          {[['\ud83c\udf99', 'Tap mic and say "Dentist next Tuesday 3pm"'],
+            ['\ud83d\udccb', 'Paste a text: "Hey wanna grab lunch Friday at 1?"'],
+            ['\ud83d\udcf1', 'Use semicolons for multiple events in one dump'],
+            ['\ud83d\udce4', 'Export events to Apple Calendar with one tap']
+          ].map(([icon, tip], i) => (
+            <div key={i} style={{ display: 'flex', gap: 8, alignItems: 'flex-start', fontSize: 13, color: 'var(--text-dim)', lineHeight: 1.5 }}>
+              <span style={{ flexShrink: 0 }}>{icon}</span><span>{tip}</span>
+            </div>
+          ))}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function TodayView({ events, onDelete, onToggleDone, onExport }) {
+  const now = new Date();
+  const todayStr = now.toDateString();
+  const todayEvents = events.filter(e => new Date(e.date).toDateString() === todayStr).sort((a, b) => new Date(a.date) - new Date(b.date));
+  const upcoming = todayEvents.filter(e => !e.done && new Date(e.date) > now);
+  const nextUp = upcoming[0];
+  const formatTime = (iso) => new Date(iso).toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' });
+  const getTimeUntil = (iso) => {
+    const diff = new Date(iso) - now;
+    if (diff < 0) return 'now';
+    const mins = Math.floor(diff / 60000);
+    if (mins < 60) return 'in ' + mins + 'm';
+    return 'in ' + Math.floor(mins / 60) + 'h ' + (mins % 60) + 'm';
+  };
+  const catClass = (cat) => 'cat-' + (cat || 'default');
+  const catEmoji = (cat) => ({ work: '\ud83d\udcbc', health: '\ud83d\udc9a', social: '\ud83c\udf89', errand: '\ud83d\uded2', default: '\ud83d\udccc' }[cat] || '\ud83d\udccc');
+
+  return (
+    <div>
+      <div className="today-hero slide-up">
+        <div className="today-date">{now.toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric' })}</div>
+        <div className="today-count">{todayEvents.filter(e => !e.done).length}</div>
+        <div className="today-subtitle">
+          {todayEvents.filter(e => !e.done).length === 0 ? 'Nothing left today. Nice!' : 'event' + (todayEvents.filter(e => !e.done).length !== 1 ? 's' : '') + ' remaining'}
+        </div>
+      </div>
+      {nextUp && (
+        <div className="next-up slide-up" style={{ animationDelay: '0.1s' }}>
+          <div className="next-up-label">Next Up</div>
+          <div className="next-up-title">{nextUp.title}</div>
+          <div className="next-up-time">{formatTime(nextUp.date)} - {getTimeUntil(nextUp.date)}</div>
+        </div>
+      )}
+      {todayEvents.length === 0 ? (
+        <div className="empty-state"><div className="emoji">\ud83c\udf89</div><p>Nothing scheduled today.<br/>Go to Brain Dump to add events!</p></div>
+      ) : (
+        <>
+          <div className="section-header"><h2>Today's Events</h2><span className="count">{todayEvents.length}</span></div>
+          {todayEvents.map((ev, i) => (
+            <div key={ev.id} className={'event-card ' + catClass(ev.category)} style={{ animationDelay: (0.05 * i) + 's', opacity: ev.done ? 0.5 : 1 }}>
+              <div className="event-top">
+                <div>
+                  <div className="event-title" style={{ textDecoration: ev.done ? 'line-through' : 'none' }}>{catEmoji(ev.category)} {ev.title}</div>
+                  <div className="event-detail">{ev.duration} min</div>
+                </div>
+                <div className="event-time">{formatTime(ev.date)}</div>
+              </div>
+              <div className="event-actions-row">
+                <button className="event-action-btn done" onClick={() => onToggleDone(ev.id)}>{ev.done ? '\u21a9 Undo' : '\u2713 Done'}</button>
+                <button className="event-action-btn export" onClick={() => onExport(ev)}>\ud83d\udce4 Export</button>
+                <button className="event-action-btn delete" onClick={() => onDelete(ev.id)}>\u2715</button>
+              </div>
+            </div>
+          ))}
+        </>
+      )}
+    </div>
+  );
+              }
+
+function CalendarView({ events, onDelete, onToggleDone, onExport, onExportAll }) {
+  const [currentMonth, setCurrentMonth] = useState(new Date());
+  const [selectedDate, setSelectedDate] = useState(new Date());
+  const year = currentMonth.getFullYear();
+  const month = currentMonth.getMonth();
+  const firstDay = new Date(year, month, 1).getDay();
+  const daysInMonth = new Date(year, month + 1, 0).getDate();
+  const daysInPrevMonth = new Date(year, month, 0).getDate();
+  const today = new Date();
+  const prevMonth = () => setCurrentMonth(new Date(year, month - 1, 1));
+  const nextMonth = () => setCurrentMonth(new Date(year, month + 1, 1));
+  const dayLabels = ['Su','Mo','Tu','We','Th','Fr','Sa'];
+  const hasEventsOnDay = (d) => { const ds = new Date(year, month, d).toDateString(); return events.some(e => new Date(e.date).toDateString() === ds); };
+  const selectedDateStr = selectedDate.toDateString();
+  const selectedEvents = events.filter(e => new Date(e.date).toDateString() === selectedDateStr).sort((a, b) => new Date(a.date) - new Date(b.date));
+  const formatTime = (iso) => new Date(iso).toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' });
+  const catClass = (cat) => 'cat-' + (cat || 'default');
+  const catEmoji = (cat) => ({ work: '\ud83d\udcbc', health: '\ud83d\udc9a', social: '\ud83c\udf89', errand: '\ud83d\uded2', default: '\ud83d\udccc' }[cat] || '\ud83d\udccc');
+  const cells = [];
+  for (let i = firstDay - 1; i >= 0; i--) { cells.push({ day: daysInPrevMonth - i, current: false }); }
+  for (let d = 1; d <= daysInMonth; d++) { cells.push({ day: d, current: true }); }
+  const remaining = 42 - cells.length;
+  for (let d = 1; d <= remaining; d++) { cells.push({ day: d, current: false }); }
+
+  return (
+    <div>
+      <div className="cal-header">
+        <h2>{currentMonth.toLocaleDateString('en-US', { month: 'long', year: 'numeric' })}</h2>
+        <div className="cal-nav"><button onClick={prevMonth}>\u2039</button><button onClick={nextMonth}>\u203a</button></div>
+      </div>
+      <div className="cal-grid">
+        {dayLabels.map(d => <div key={d} className="cal-day-label">{d}</div>)}
+        {cells.map((cell, i) => {
+          const isToday = cell.current && cell.day === today.getDate() && month === today.getMonth() && year === today.getFullYear();
+          const isSelected = cell.current && new Date(year, month, cell.day).toDateString() === selectedDateStr;
+          const hasEvents = cell.current && hasEventsOnDay(cell.day);
+          return (
+            <div key={i} className={'cal-day ' + (isToday ? 'today ' : '') + (hasEvents ? 'has-events ' : '') + (isSelected ? 'selected ' : '') + (!cell.current ? 'other-month' : '')}
+              onClick={() => cell.current && setSelectedDate(new Date(year, month, cell.day))}>
+              {cell.day}
+            </div>
+          );
+        })}
+      </div>
+      <div className="section-header">
+        <h2>{selectedDate.toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' })}</h2>
+        {selectedEvents.length > 0 && <span className="count">{selectedEvents.length}</span>}
+      </div>
+      {selectedEvents.length === 0 ? (
+        <div className="empty-state"><div className="emoji">\ud83d\udcad</div><p>Nothing on this day yet.</p></div>
+      ) : (
+        selectedEvents.map(ev => (
+          <div key={ev.id} className={'event-card ' + catClass(ev.category)} style={{ opacity: ev.done ? 0.5 : 1 }}>
+            <div className="event-top">
+              <div>
+                <div className="event-title" style={{ textDecoration: ev.done ? 'line-through' : 'none' }}>{catEmoji(ev.category)} {ev.title}</div>
+                <div className="event-detail">{ev.duration} min</div>
+              </div>
+              <div className="event-time">{formatTime(ev.date)}</div>
+            </div>
+            <div className="event-actions-row">
+              <button className="event-action-btn done" onClick={() => onToggleDone(ev.id)}>{ev.done ? '\u21a9 Undo' : '\u2713 Done'}</button>
+              <button className="event-action-btn export" onClick={() => onExport(ev)}>\ud83d\udce4 Export</button>
+              <button className="event-action-btn delete" onClick={() => onDelete(ev.id)}>\u2715</button>
+            </div>
+          </div>
+        ))
+      )}
+      {events.length > 0 && <button className="export-all-btn" onClick={onExportAll}>\ud83d\udce4 Export All to Apple Calendar</button>}
+    </div>
+  );
+}
+
+function SettingsView({ settings, onUpdate, events, onExportAll }) {
+  return (
+    <div>
+      <div className="section-header"><h2>Settings</h2></div>
+      <div className="setting-group">
+        <div className="setting-group-title">Notifications</div>
+        <div className="setting-row">
+          <div><div className="setting-label">Escalating reminders</div><div className="setting-desc">Alerts get louder as event approaches</div></div>
+          <button className={'toggle ' + (settings.escalating ? 'on' : '')} onClick={() => onUpdate('escalating', !settings.escalating)} />
+        </div>
+        <div className="setting-row">
+          <div><div className="setting-label">Prep time buffer</div><div className="setting-desc">Extra reminder to start getting ready</div></div>
+          <select className="setting-select" value={settings.prepTime} onChange={e => onUpdate('prepTime', parseInt(e.target.value))}>
+            <option value={0}>Off</option><option value={5}>5 min</option><option value={10}>10 min</option>
+            <option value={15}>15 min</option><option value={30}>30 min</option><option value={45}>45 min</option><option value={60}>1 hour</option>
+          </select>
+        </div>
+        <div className="setting-row">
+          <div><div className="setting-label">"Time to leave" alerts</div><div className="setting-desc">Nudge when it's time to go</div></div>
+          <button className={'toggle ' + (settings.leaveReminder ? 'on' : '')} onClick={() => onUpdate('leaveReminder', !settings.leaveReminder)} />
+        </div>
+      </div>
+      <div className="setting-group">
+        <div className="setting-group-title">Defaults</div>
+        <div className="setting-row">
+          <div><div className="setting-label">Default event duration</div></div>
+          <select className="setting-select" value={settings.defaultDuration} onChange={e => onUpdate('defaultDuration', parseInt(e.target.value))}>
+            <option value={15}>15 min</option><option value={30}>30 min</option><option value={45}>45 min</option>
+            <option value={60}>1 hour</option><option value={90}>1.5 hours</option><option value={120}>2 hours</option>
+          </select>
+        </div>
+      </div>
+      <div className="setting-group">
+        <div className="setting-group-title">Data</div>
+        <div className="setting-row" style={{ flexDirection: 'column', gap: 10 }}>
+          {events.length > 0 && <button className="export-all-btn" onClick={onExportAll} style={{ margin: 0 }}>\ud83d\udce4 Export All ({events.length}) to Apple Calendar</button>}
+          <button className="export-all-btn" style={{ margin: 0, background: 'var(--bg-card-hover)' }}
+            onClick={() => { if (confirm('Delete ALL events? This cannot be undone.')) { localStorage.removeItem('bd_events'); window.location.reload(); } }}>
+            \ud83d\uddd1 Clear All Events
+          </button>
+        </div>
+      </div>
+      <div style={{ textAlign: 'center', padding: '24px 0', color: 'var(--text-dim)', fontSize: 12 }}>
+        BrainDump v1.0 - Built for ADHD brains<br/>Add to Home Screen for best experience
+      </div>
+    </div>
+  );
+}
+
+ReactDOM.createRoot(document.getElementById('root')).render(<App />);
+
+if ('serviceWorker' in navigator) {
+  window.addEventListener('load', () => { navigator.serviceWorker.register('sw.js').catch(() => {}); });
+}
+</script>
+</body>
+</html>
