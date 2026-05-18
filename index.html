@@ -581,7 +581,7 @@ function App() {
       <div className="topbar">
         <h1>BrainDump</h1>
         <button className="topbar-btn" onClick={() => setTab('settings')} title="Settings">
-          {tab === 'settings' ? '\u2715' : '\u2699'}
+          {tab === 'settings' ? '✕' : '⚙'}
         </button>
       </div>
       <div className="main-content">
@@ -590,19 +590,19 @@ function App() {
         {tab === 'calendar' && <CalendarView events={events} onDelete={deleteEvent} onToggleDone={toggleDone} onExport={(ev) => { downloadICS(ev); showToast('Exported to Apple Calendar'); }} onExportAll={() => { downloadICS(events); showToast('All events exported!'); }} />}
         {tab === 'settings' && <SettingsView settings={settings} onUpdate={updateSettings} events={events} onExportAll={() => { downloadICS(events); showToast('All events exported!'); }} />}
       </div>
-      {toast && <div className="toast">\u2713 {toast}</div>}
+      {toast && <div className="toast">✓ {toast}</div>}
       <nav className="bottom-nav">
         <button className={'nav-item ' + (tab === 'dump' ? 'active' : '')} onClick={() => setTab('dump')}>
-          <span className="nav-icon">\ud83e\udde0</span>Dump
+          <span className="nav-icon">🧠</span>Dump
         </button>
         <button className={'nav-item ' + (tab === 'today' ? 'active' : '')} onClick={() => setTab('today')}>
-          <span className="nav-icon">\ud83c\udf1f</span>Today
+          <span className="nav-icon">🌟</span>Today
         </button>
         <button className={'nav-item ' + (tab === 'calendar' ? 'active' : '')} onClick={() => setTab('calendar')}>
-          <span className="nav-icon">\ud83d\udcc5</span>Calendar
+          <span className="nav-icon">📅</span>Calendar
         </button>
         <button className={'nav-item ' + (tab === 'settings' ? 'active' : '')} onClick={() => setTab('settings')}>
-          <span className="nav-icon">\u2699\ufe0f</span>Settings
+          <span className="nav-icon">⚙️</span>Settings
         </button>
       </nav>
     </div>
@@ -619,12 +619,12 @@ function DumpView({ onAdd, onAddMulti, settings }) {
   const textareaRef = useRef(null);
 
   const templates = [
-    { emoji: '\ud83d\udcbc', label: 'Meeting', text: 'Meeting tomorrow at ' },
-    { emoji: '\ud83c\udfcb', label: 'Gym', text: 'Gym today at ' },
-    { emoji: '\ud83d\uded2', label: 'Groceries', text: 'Groceries today evening' },
-    { emoji: '\ud83d\udcde', label: 'Call', text: 'Call with ' },
-    { emoji: '\ud83e\ude7a', label: 'Doctor', text: 'Doctor appointment ' },
-    { emoji: '\ud83c\udf7d', label: 'Dinner', text: 'Dinner ' },
+    { emoji: '💼', label: 'Meeting', text: 'Meeting tomorrow at ' },
+    { emoji: '🏋', label: 'Gym', text: 'Gym today at ' },
+    { emoji: '🛒', label: 'Groceries', text: 'Groceries today evening' },
+    { emoji: '📞', label: 'Call', text: 'Call with ' },
+    { emoji: '🩺', label: 'Doctor', text: 'Doctor appointment ' },
+    { emoji: '🍽', label: 'Dinner', text: 'Dinner ' },
   ];
 
   const startRecording = () => {
@@ -677,10 +677,10 @@ function DumpView({ onAdd, onAddMulti, settings }) {
         )}
         <div className="dump-actions">
           <button className={'mic-btn ' + (recording ? 'recording' : '')} onClick={recording ? stopRecording : startRecording} title={recording ? 'Stop recording' : 'Start voice input'}>
-            {recording ? '\u23f9' : '\ud83c\udf99'}
+            {recording ? '⏹' : '🎙'}
           </button>
           <button className="parse-btn" onClick={handleParse} disabled={!text.trim()}>
-            \u2728 Turn into Event
+            ✨ Turn into Event
           </button>
         </div>
       </div>
@@ -693,31 +693,31 @@ function DumpView({ onAdd, onAddMulti, settings }) {
       </div>
       {showParsed && parsedEvents.length === 1 && (
         <div className="parsed-preview">
-          <h3>\u2728 Parsed Event</h3>
-          <div className="parsed-field"><span className="icon">\ud83d\udccc</span>
+          <h3>✨ Parsed Event</h3>
+          <div className="parsed-field"><span className="icon">📌</span>
             <input value={parsedEvents[0].title} onChange={e => updateParsedField(0, 'title', e.target.value)} placeholder="Event title" />
           </div>
-          <div className="parsed-field"><span className="icon">\ud83d\udcc5</span>
+          <div className="parsed-field"><span className="icon">📅</span>
             <input type="datetime-local" value={new Date(parsedEvents[0].date).toISOString().slice(0, 16)} onChange={e => updateParsedField(0, 'date', new Date(e.target.value).toISOString())} />
           </div>
-          <div className="parsed-field"><span className="icon">\u23f1</span>
+          <div className="parsed-field"><span className="icon">⏱</span>
             <input type="number" value={parsedEvents[0].duration} onChange={e => updateParsedField(0, 'duration', parseInt(e.target.value) || 30)} style={{ width: 80 }} />
             <span style={{ color: 'var(--text-dim)', fontSize: 13 }}>min</span>
           </div>
           <div className="parsed-actions">
-            <button className="btn-confirm" onClick={handleConfirm}>\u2713 Add Event</button>
+            <button className="btn-confirm" onClick={handleConfirm}>✓ Add Event</button>
             <button className="btn-cancel" onClick={handleCancel}>Cancel</button>
           </div>
         </div>
       )}
       {showParsed && parsedEvents.length > 1 && (
         <div className="parsed-preview">
-          <h3>\u2728 Found {parsedEvents.length} events</h3>
+          <h3>✨ Found {parsedEvents.length} events</h3>
           <div className="multi-parse">
             {parsedEvents.map((ev, i) => (
               <div key={i} className="multi-parse-item">
                 <button className={'multi-check ' + (ev.selected === false ? 'unchecked' : '')} onClick={() => toggleParsedSelect(i)}>
-                  {ev.selected !== false ? '\u2713' : ''}
+                  {ev.selected !== false ? '✓' : ''}
                 </button>
                 <div className="multi-info">
                   <div className="name">{ev.title}</div>
@@ -727,7 +727,7 @@ function DumpView({ onAdd, onAddMulti, settings }) {
             ))}
           </div>
           <div className="parsed-actions">
-            <button className="btn-confirm" onClick={handleConfirm}>\u2713 Add Selected</button>
+            <button className="btn-confirm" onClick={handleConfirm}>✓ Add Selected</button>
             <button className="btn-cancel" onClick={handleCancel}>Cancel</button>
           </div>
         </div>
@@ -735,10 +735,10 @@ function DumpView({ onAdd, onAddMulti, settings }) {
       <div style={{ padding: '12px 4px', marginTop: 8 }}>
         <div className="dump-label" style={{ marginBottom: 10 }}>Tips for lazy planning</div>
         <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
-          {[['\ud83c\udf99', 'Tap mic and say "Dentist next Tuesday 3pm"'],
-            ['\ud83d\udccb', 'Paste a text: "Hey wanna grab lunch Friday at 1?"'],
-            ['\ud83d\udcf1', 'Use semicolons for multiple events in one dump'],
-            ['\ud83d\udce4', 'Export events to Apple Calendar with one tap']
+          {[['🎙', 'Tap mic and say "Dentist next Tuesday 3pm"'],
+            ['📋', 'Paste a text: "Hey wanna grab lunch Friday at 1?"'],
+            ['📱', 'Use semicolons for multiple events in one dump'],
+            ['📤', 'Export events to Apple Calendar with one tap']
           ].map(([icon, tip], i) => (
             <div key={i} style={{ display: 'flex', gap: 8, alignItems: 'flex-start', fontSize: 13, color: 'var(--text-dim)', lineHeight: 1.5 }}>
               <span style={{ flexShrink: 0 }}>{icon}</span><span>{tip}</span>
@@ -765,7 +765,7 @@ function TodayView({ events, onDelete, onToggleDone, onExport }) {
     return 'in ' + Math.floor(mins / 60) + 'h ' + (mins % 60) + 'm';
   };
   const catClass = (cat) => 'cat-' + (cat || 'default');
-  const catEmoji = (cat) => ({ work: '\ud83d\udcbc', health: '\ud83d\udc9a', social: '\ud83c\udf89', errand: '\ud83d\uded2', default: '\ud83d\udccc' }[cat] || '\ud83d\udccc');
+  const catEmoji = (cat) => ({ work: '💼', health: '💚', social: '🎉', errand: '🛒', default: '📌' }[cat] || '📌');
 
   return (
     <div>
@@ -784,7 +784,7 @@ function TodayView({ events, onDelete, onToggleDone, onExport }) {
         </div>
       )}
       {todayEvents.length === 0 ? (
-        <div className="empty-state"><div className="emoji">\ud83c\udf89</div><p>Nothing scheduled today.<br/>Go to Brain Dump to add events!</p></div>
+        <div className="empty-state"><div className="emoji">🎉</div><p>Nothing scheduled today.<br/>Go to Brain Dump to add events!</p></div>
       ) : (
         <>
           <div className="section-header"><h2>Today's Events</h2><span className="count">{todayEvents.length}</span></div>
@@ -798,9 +798,9 @@ function TodayView({ events, onDelete, onToggleDone, onExport }) {
                 <div className="event-time">{formatTime(ev.date)}</div>
               </div>
               <div className="event-actions-row">
-                <button className="event-action-btn done" onClick={() => onToggleDone(ev.id)}>{ev.done ? '\u21a9 Undo' : '\u2713 Done'}</button>
-                <button className="event-action-btn export" onClick={() => onExport(ev)}>\ud83d\udce4 Export</button>
-                <button className="event-action-btn delete" onClick={() => onDelete(ev.id)}>\u2715</button>
+                <button className="event-action-btn done" onClick={() => onToggleDone(ev.id)}>{ev.done ? '↩ Undo' : '✓ Done'}</button>
+                <button className="event-action-btn export" onClick={() => onExport(ev)}>📤 Export</button>
+                <button className="event-action-btn delete" onClick={() => onDelete(ev.id)}>✕</button>
               </div>
             </div>
           ))}
@@ -827,7 +827,7 @@ function CalendarView({ events, onDelete, onToggleDone, onExport, onExportAll })
   const selectedEvents = events.filter(e => new Date(e.date).toDateString() === selectedDateStr).sort((a, b) => new Date(a.date) - new Date(b.date));
   const formatTime = (iso) => new Date(iso).toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' });
   const catClass = (cat) => 'cat-' + (cat || 'default');
-  const catEmoji = (cat) => ({ work: '\ud83d\udcbc', health: '\ud83d\udc9a', social: '\ud83c\udf89', errand: '\ud83d\uded2', default: '\ud83d\udccc' }[cat] || '\ud83d\udccc');
+  const catEmoji = (cat) => ({ work: '💼', health: '💚', social: '🎉', errand: '🛒', default: '📌' }[cat] || '📌');
   const cells = [];
   for (let i = firstDay - 1; i >= 0; i--) { cells.push({ day: daysInPrevMonth - i, current: false }); }
   for (let d = 1; d <= daysInMonth; d++) { cells.push({ day: d, current: true }); }
@@ -838,7 +838,7 @@ function CalendarView({ events, onDelete, onToggleDone, onExport, onExportAll })
     <div>
       <div className="cal-header">
         <h2>{currentMonth.toLocaleDateString('en-US', { month: 'long', year: 'numeric' })}</h2>
-        <div className="cal-nav"><button onClick={prevMonth}>\u2039</button><button onClick={nextMonth}>\u203a</button></div>
+        <div className="cal-nav"><button onClick={prevMonth}>‹</button><button onClick={nextMonth}>›</button></div>
       </div>
       <div className="cal-grid">
         {dayLabels.map(d => <div key={d} className="cal-day-label">{d}</div>)}
@@ -859,7 +859,7 @@ function CalendarView({ events, onDelete, onToggleDone, onExport, onExportAll })
         {selectedEvents.length > 0 && <span className="count">{selectedEvents.length}</span>}
       </div>
       {selectedEvents.length === 0 ? (
-        <div className="empty-state"><div className="emoji">\ud83d\udcad</div><p>Nothing on this day yet.</p></div>
+        <div className="empty-state"><div className="emoji">💭</div><p>Nothing on this day yet.</p></div>
       ) : (
         selectedEvents.map(ev => (
           <div key={ev.id} className={'event-card ' + catClass(ev.category)} style={{ opacity: ev.done ? 0.5 : 1 }}>
@@ -871,14 +871,14 @@ function CalendarView({ events, onDelete, onToggleDone, onExport, onExportAll })
               <div className="event-time">{formatTime(ev.date)}</div>
             </div>
             <div className="event-actions-row">
-              <button className="event-action-btn done" onClick={() => onToggleDone(ev.id)}>{ev.done ? '\u21a9 Undo' : '\u2713 Done'}</button>
-              <button className="event-action-btn export" onClick={() => onExport(ev)}>\ud83d\udce4 Export</button>
-              <button className="event-action-btn delete" onClick={() => onDelete(ev.id)}>\u2715</button>
+              <button className="event-action-btn done" onClick={() => onToggleDone(ev.id)}>{ev.done ? '↩ Undo' : '✓ Done'}</button>
+              <button className="event-action-btn export" onClick={() => onExport(ev)}>📤 Export</button>
+              <button className="event-action-btn delete" onClick={() => onDelete(ev.id)}>✕</button>
             </div>
           </div>
         ))
       )}
-      {events.length > 0 && <button className="export-all-btn" onClick={onExportAll}>\ud83d\udce4 Export All to Apple Calendar</button>}
+      {events.length > 0 && <button className="export-all-btn" onClick={onExportAll}>📤 Export All to Apple Calendar</button>}
     </div>
   );
 }
@@ -918,10 +918,10 @@ function SettingsView({ settings, onUpdate, events, onExportAll }) {
       <div className="setting-group">
         <div className="setting-group-title">Data</div>
         <div className="setting-row" style={{ flexDirection: 'column', gap: 10 }}>
-          {events.length > 0 && <button className="export-all-btn" onClick={onExportAll} style={{ margin: 0 }}>\ud83d\udce4 Export All ({events.length}) to Apple Calendar</button>}
+          {events.length > 0 && <button className="export-all-btn" onClick={onExportAll} style={{ margin: 0 }}>📤 Export All ({events.length}) to Apple Calendar</button>}
           <button className="export-all-btn" style={{ margin: 0, background: 'var(--bg-card-hover)' }}
             onClick={() => { if (confirm('Delete ALL events? This cannot be undone.')) { localStorage.removeItem('bd_events'); window.location.reload(); } }}>
-            \ud83d\uddd1 Clear All Events
+            🗑 Clear All Events
           </button>
         </div>
       </div>
@@ -940,3 +940,4 @@ if ('serviceWorker' in navigator) {
 </script>
 </body>
 </html>
+
